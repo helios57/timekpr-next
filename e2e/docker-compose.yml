@@ -2,6 +2,8 @@ version: "3.9"
 
 services:
   sync-server:
+    build:
+      context: ../sync-server
     image: timekpr-sync-server:latest
     ports:
       - "8000:8000"
