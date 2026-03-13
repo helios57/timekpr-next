@@ -1,5 +1,25 @@
 # Byte-compiled / optimized / DLL files
-**/__pycache__/
+__pycache__/
 *.py[cod]
-**/.ropeproject/
-**/runtime.tmp/
+*$py.class
+
+# IDE / Project files
+.ropeproject/
+runtime.tmp/
+.vscode/
+.idea/
+
+# Virtual Environments
+venv/
+env/
+ENV/
+
+# Testing
+.pytest_cache/
+
+# Databases
+*.sqlite
+*.db
+
+# OS generated files
+.DS_Store

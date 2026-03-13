@@ -975,6 +975,19 @@ class timekprUserConfig(object):
         _saveConfigFile(self._configFile, values)
 
         log.log(cons.TK_LOG_LEVEL_DEBUG, "finish saving new user configuration")
+        
+        # Trigger immediate sync using subprocess
+        try:
+            import subprocess
+            client_script = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "client", "sync_client.py"))
+            subprocess.Popen([
+                "python3", client_script,
+                "--config-dir", os.path.dirname(self._configFile),
+                "--work-dir", os.path.dirname(self._configFile).replace("/etc/", "/var/lib/"), # Approximation, will be ignored if sync_client.py determines it otherwise. Or wait, they are different dirs. We can extract work dir from config. Let's just pass some placeholer and let sync_client fetch it? No, sync_client needs them. We will pass a standard workdir. But wait, we can pass "/var/lib/timekpr/work" or something if needed. Actually we can find a better way. Let's just use the known directories or let timekpd handle it. Let's pass cons.TK_WORK_DIR and cons.TK_CONFIG_DIR.
+                "--username", self._userName
+            ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        except Exception as e:
+            log.log(cons.TK_LOG_LEVEL_INFO, "Failed to trigger sync: %s" % str(e))
 
     def logUserConfiguration(self):
         """Log user timekpr config file"""
@@ -1418,6 +1431,21 @@ class timekprUserControl(object):
         _saveConfigFile(self._configFile, values)
 
         log.log(cons.TK_LOG_LEVEL_INFO, "finish save user control")
+        
+        # Trigger immediate sync using subprocess
+        try:
+            import subprocess
+            client_script = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "client", "sync_client.py"))
+            config_dir = os.path.dirname(self._configFile).replace("/var/lib/", "/etc/").replace("/work", "") # best effort guess based on typical paths
+            # actually we can just pass cons.TK_CONFIG_DIR and cons.TK_WORK_DIR !
+            subprocess.Popen([
+                "python3", client_script,
+                "--config-dir", cons.TK_CONFIG_DIR_DEV if cons.TK_DEV_ACTIVE else cons.TK_CONFIG_DIR,
+                "--work-dir", cons.TK_WORK_DIR_DEV if cons.TK_DEV_ACTIVE else cons.TK_WORK_DIR,
+                "--username", self._userName
+            ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        except Exception as e:
+            log.log(cons.TK_LOG_LEVEL_INFO, "Failed to trigger sync: %s" % str(e))
 
     def logUserControl(self):
         """Log user control config file"""

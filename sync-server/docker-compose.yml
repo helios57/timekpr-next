@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  sync-server:
+    build: .
+    container_name: timekpr-sync-server
+    restart: always
+    ports:
+      - "8000:8000"
+    volumes:
+      - sync_data:/app/data
+
+volumes:
+  sync_data:

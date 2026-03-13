@@ -31,6 +31,9 @@ from timekpr.common.log import log
 from timekpr.server.interface.dbus.daemon import timekprDaemon
 from timekpr.common.utils import misc
 from timekpr.server.config.userhelper import timekprUserStore
+from timekpr.common.utils.config import timekprConfig
+import time
+import threading
 
 
 # main start
@@ -66,3 +69,35 @@ if __name__ == "__main__":
 
     # start daemon threads
     _timekprDaemon.startTimekprDaemon()
+
+    # Sync client hook
+    def run_sync_client():
+        try:
+            # Check locally available users to sync
+            users = timekprUserStore().getSavedUserList()
+            cfgManager = timekprConfig()
+            cfgManager.loadMainConfiguration()
+            
+            import sys
+            import os
+            
+            try:
+                # Add timekpr root if not installed system-wide
+                sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+                from client import sync_client
+                for u in users:
+                    sync_client.sync_user(cfgManager.getTimekprConfigDir(), cfgManager.getTimekprWorkDir(), u[0])
+            except Exception as e:
+                log.log(cons.TK_LOG_LEVEL_INFO, f"Sync client run failed to execute: {str(e)}")
+        except Exception as e:
+            log.log(cons.TK_LOG_LEVEL_INFO, f"Sync background thread failed: {str(e)}")
+
+    def sync_loop():
+        # Delay on startup, so the system network wait target has time to come up
+        time.sleep(15)
+        while True:
+            run_sync_client()
+            time.sleep(60)
+
+    sync_thread = threading.Thread(target=sync_loop, daemon=True)
+    sync_thread.start()

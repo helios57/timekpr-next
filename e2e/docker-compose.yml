@@ -1,0 +1,39 @@
+version: "3.9"
+
+services:
+  sync-server:
+    image: timekpr-sync-server:latest
+    ports:
+      - "8000:8000"
+
+  client1:
+    build:
+      context: ..
+      dockerfile: e2e/Dockerfile.client
+    environment:
+      - DEVICE_ID=client1
+      - SYNC_SERVER_URL=http://sync-server:8000/api/sync
+    volumes:
+      - client1_data:/var/lib/timekpr
+      - client1_config:/etc/timekpr
+    depends_on:
+      - sync-server
+
+  client2:
+    build:
+      context: ..
+      dockerfile: e2e/Dockerfile.client
+    environment:
+      - DEVICE_ID=client2
+      - SYNC_SERVER_URL=http://sync-server:8000/api/sync
+    volumes:
+      - client2_data:/var/lib/timekpr
+      - client2_config:/etc/timekpr
+    depends_on:
+      - sync-server
+
+volumes:
+  client1_data:
+  client1_config:
+  client2_data:
+  client2_config:

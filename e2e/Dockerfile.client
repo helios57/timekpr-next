@@ -1,0 +1,21 @@
+FROM python:3.12-alpine
+
+# Install some basics
+RUN apk update && apk add curl shadow procps
+# Install dbus and PyGObject dependencies for timekpr
+RUN apk add dbus-x11 dbus-glib py3-dbus py3-gobject3
+
+# We need the client code and common code to run timekprd mock or direct scripts
+WORKDIR /app
+COPY . .
+
+# Set up some dummy directories that timekpr uses
+RUN mkdir -p /var/lib/timekpr/work /var/lib/timekpr/config /etc/timekpr
+
+# The alpine python image doesn't see the system py3-* packages natively.
+# We will create a symlink or install pure python equivalents where possible,
+# or better yet use python-alpine system packages and symlink them into local.
+ENV PYTHONPATH=/usr/lib/python3.12/site-packages
+RUN pip install requests
+
+CMD ["tail", "-f", "/dev/null"]

@@ -14,6 +14,8 @@ The application is targeted at parents or supervisors to optimize / limit time s
 Timekpr-nExT is designed to keep control of computer usage, which implies forcibly terminating user sessions and / or other types of 
 restrictions and limitations.
 
+**NEW: Multi-Device Syncing**: Need to synchronize time limits across multiple computers or overlapping users? Check out the new [Timekpr-Next Delta Sync Server](sync-server/README.md) integration!
+
 Please be responsible and inform your users that their time is accounted and their work might be terminated abruptly, although 
 notifications can be configured to warn them. In fact, notifications are mostly in their own hands.
 

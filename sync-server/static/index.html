@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Timekpr-Next Sync Dashboard</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #1a1a2e; color: #e0e0e0; margin: 0; padding: 20px; }
+        h1 { text-align: center; color: #4facfe; }
+        .user-card { background: #16213e; border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+        .user-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #0f3460; padding-bottom: 10px; margin-bottom: 15px; }
+        .user-header h2 { margin: 0; color: #e94560; }
+        .device-list { margin-bottom: 15px; }
+        .device { background: #0f3460; padding: 10px; border-radius: 4px; margin-bottom: 5px; display: flex; justify-content: space-between; }
+        .controls { display: flex; gap: 10px; }
+        button { background: #e94560; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; transition: background 0.3s; }
+        button:hover { background: #d03050; }
+        .btn-add { background: #4facfe; }
+        .btn-add:hover { background: #3a8cc; }
+        .stat-label { color: #888; font-size: 0.9em; }
+    </style>
+</head>
+<body>
+    <h1>Timekpr-Next Sync Dashboard</h1>
+    <div id="users-container"></div>
+
+    <script>
+        const ws = new WebSocket(`ws://${location.host}/ws`);
+        const container = document.getElementById('users-container');
+
+        ws.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            if (data.type === 'state_update') {
+                renderState(data.state);
+            }
+        };
+
+        function adjustTime(username, minutes) {
+            ws.send(JSON.stringify({
+                type: 'adjust_time',
+                username: username,
+                delta_seconds: minutes * 60
+            }));
+        }
+
+        function renderState(state) {
+            container.innerHTML = '';
+            if (!state.users || Object.keys(state.users).length === 0) {
+                container.innerHTML = '<p style="text-align:center;">No users connected yet.</p>';
+                return;
+            }
+
+            for (const [username, userData] of Object.entries(state.users)) {
+                const card = document.createElement('div');
+                card.className = 'user-card';
+
+                const config = userData.config || {};
+                const limitDay = config.LIMITS_PER_WEEKDAYS ? config.LIMITS_PER_WEEKDAYS.split(';')[new Date().getDay() - 1] || '0' : '0';
+                
+                // Calculate total time spent roughly (devices + global adjustments)
+                let totalDeviceTime = 0;
+                let activeDevicesHtml = '';
+                
+                for (const [deviceId, timeData] of Object.entries(userData.devices || {})) {
+                    totalDeviceTime += parseInt(timeData.TIME_SPENT_DAY || 0);
+                    activeDevicesHtml += `
+                        <div class="device">
+                            <span>📱 ${deviceId}</span>
+                            <span>Spent: ${Math.floor(timeData.TIME_SPENT_DAY / 60)} min</span>
+                        </div>
+                    `;
+                }
+                
+                const globalTimeSeconds = userData.global_time || 0;
+                // Basic formula: limit - local tracked - any global subtractions/additions
+                const remainingSeconds = parseInt(limitDay) - totalDeviceTime + globalTimeSeconds;
+                const remainingMinutes = Math.max(0, Math.floor(remainingSeconds / 60));
+
+                card.innerHTML = `
+                    <div class="user-header">
+                        <h2>👤 ${username}</h2>
+                        <div>
+                            <span class="stat-label">Daily Limit:</span> ${Math.floor(parseInt(limitDay) / 60)}m &nbsp;|&nbsp; 
+                            <strong style="color: ${remainingMinutes > 10 ? '#4facfe' : '#e94560'}; font-size: 1.2em;">Remaining: ${remainingMinutes}m</strong>
+                        </div>
+                    </div>
+                    <div class="device-list">
+                        <div class="stat-label" style="margin-bottom: 5px;">Connected Devices:</div>
+                        ${activeDevicesHtml || '<div class="device">No active devices</div>'}
+                    </div>
+                    <div class="controls">
+                        <button class="btn-add" onclick="adjustTime('${username}', 15)">+ 15 Min</button>
+                        <button class="btn-add" onclick="adjustTime('${username}', 60)">+ 1 Hour</button>
+                        <button onclick="adjustTime('${username}', -15)">- 15 Min</button>
+                    </div>
+                `;
+                container.appendChild(card);
+            }
+        }
+    </script>
+</body>
+</html>
